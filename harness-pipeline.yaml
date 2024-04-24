@@ -1,0 +1,176 @@
+pipeline:
+  identifier: temp
+  name: temp
+  projectIdentifier: helloworld
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - parallel:
+        - stage:
+            identifier: t
+            type: Deployment
+            name: t
+            description: ""
+            spec:
+              deploymentType: Kubernetes
+              environment:
+                environmentRef: test
+                deployToAll: false
+                infrastructureDefinitions:
+                  - identifier: awsinfra
+              execution:
+                steps:
+                  - stepGroup:
+                      identifier: canaryDepoyment
+                      name: Canary Deployment
+                      steps:
+                        - step:
+                            identifier: canaryDeployment
+                            type: K8sCanaryDeploy
+                            name: Canary Deployment
+                            timeout: 10m
+                            spec:
+                              instanceSelection:
+                                type: Count
+                                spec:
+                                  count: 1
+                              skipDryRun: false
+                        - step:
+                            identifier: canaryDelete
+                            type: K8sCanaryDelete
+                            name: Canary Delete
+                            timeout: 10m
+                            spec: {}
+                  - stepGroup:
+                      identifier: primaryDepoyment
+                      name: Primary Deployment
+                      steps:
+                        - step:
+                            identifier: rollingDeployment
+                            type: K8sRollingDeploy
+                            name: Rolling Deployment
+                            timeout: 10m
+                            spec:
+                              skipDryRun: false
+                rollbackSteps:
+                  - step:
+                      identifier: rollbackCanaryDelete
+                      type: K8sCanaryDelete
+                      name: Canary Delete
+                      timeout: 10m
+                      spec: {}
+                  - step:
+                      identifier: rollingRollback
+                      type: K8sRollingRollback
+                      name: Rolling Rollback
+                      timeout: 10m
+                      spec: {}
+              services:
+                values:
+                  - serviceRef: hellojane
+                  - serviceRef: sample_service_1688116816549
+                metadata:
+                  parallel: false
+            tags: {}
+            failureStrategies:
+              - onFailure:
+                  errors:
+                    - AllErrors
+                  action:
+                    type: StageRollback
+        - stage:
+            identifier: t3
+            type: Deployment
+            name: t3
+            description: ""
+            spec:
+              deploymentType: Kubernetes
+              environment:
+                environmentRef: test
+                deployToAll: false
+                infrastructureDefinitions:
+                  - identifier: awsinfra
+              execution:
+                steps:
+                  - step:
+                      identifier: stageDeployment
+                      type: K8sBlueGreenDeploy
+                      name: Stage Deployment
+                      timeout: 10m
+                      spec:
+                        skipDryRun: false
+                        pruningEnabled: false
+                  - step:
+                      identifier: bgSwapServices
+                      type: K8sBGSwapServices
+                      name: Swap primary with stage service
+                      timeout: 10m
+                      spec:
+                        skipDryRun: false
+                rollbackSteps:
+                  - step:
+                      identifier: rollbackBgSwapServices
+                      type: K8sBGSwapServices
+                      name: Swap primary with stage service
+                      timeout: 10m
+                      spec:
+                        skipDryRun: false
+              services:
+                values:
+                  - serviceRef: hellojane
+                  - serviceRef: sample_service_1688116816549
+                metadata:
+                  parallel: false
+            tags: {}
+            failureStrategies:
+              - onFailure:
+                  errors:
+                    - AllErrors
+                  action:
+                    type: StageRollback
+    - stage:
+        identifier: t2
+        type: Deployment
+        name: t2
+        description: ""
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: hellojane
+          environment:
+            environmentRef: test
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: awsinfra
+          execution:
+            steps:
+              - step:
+                  identifier: stageDeployment
+                  type: K8sBlueGreenDeploy
+                  name: Stage Deployment
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+                    pruningEnabled: false
+              - step:
+                  identifier: bgSwapServices
+                  type: K8sBGSwapServices
+                  name: Swap primary with stage service
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+            rollbackSteps:
+              - step:
+                  identifier: rollbackBgSwapServices
+                  type: K8sBGSwapServices
+                  name: Swap primary with stage service
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
