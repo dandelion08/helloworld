@@ -70,7 +70,7 @@ pipeline:
                   - serviceRef: hellojane
                   - serviceRef: sample_service_1688116816549
                 metadata:
-                  parallel: false
+                  parallel: true
             tags: {}
             failureStrategies:
               - onFailure:
@@ -85,11 +85,6 @@ pipeline:
             description: ""
             spec:
               deploymentType: Kubernetes
-              environment:
-                environmentRef: test
-                deployToAll: false
-                infrastructureDefinitions:
-                  - identifier: awsinfra
               execution:
                 steps:
                   - step:
@@ -121,6 +116,18 @@ pipeline:
                   - serviceRef: sample_service_1688116816549
                 metadata:
                   parallel: false
+              environments:
+                metadata:
+                  parallel: true
+                values:
+                  - environmentRef: test
+                    deployToAll: false
+                    infrastructureDefinitions:
+                      - identifier: awsinfra
+                  - environmentRef: harnessdevenvdep
+                    deployToAll: true
+                    infrastructureDefinitions:
+                      - identifier: harnessk8sinfradep
             tags: {}
             failureStrategies:
               - onFailure:
