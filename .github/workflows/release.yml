@@ -1,10 +1,9 @@
 name: Releases
 
-on:
+on: 
   push:
-    branches:
-    - main
-    - release/*
+    tags:
+    - '*'
 
 jobs:
 
